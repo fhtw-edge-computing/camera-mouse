@@ -14,6 +14,7 @@ def mouse_move(x, y):
 
 def trigger_gesture(action):
     x, y = mouse.get_position()
+    print("Gesture triggered: "+action)
     if action == "Left Click":
         pyautogui.click(x, y)
     elif action == "Double Click":
@@ -64,12 +65,15 @@ def came(values):
                 face_length_y = float(faceLms.landmark[152].y) - float(faceLms.landmark[10].y)
                 face_width_x = float(faceLms.landmark[352].x) - float(faceLms.landmark[123].x)
 
-                if diff_mouth_length_x > (face_width_x * 0.519363) and (
-                        datetime.now() - time_last).total_seconds() > gesture_delay:
+                # Normalization: Divide horizontal mouth width by face_width_x to normalize the value (make it invariant to head size)
+                print("diff_mout_length_x: "+str(diff_mouth_length_x / face_width_x)+", default mouth x: "+str(0.1 / face_width_x))
+
+                if (diff_mouth_length_x / face_width_x ) > 0.42:
+                    # and (datetime.now() - time_last).total_seconds() > gesture_delay:
+                    print("Smile triggered")
                     time_last = datetime.now()
                     trigger_gesture(values[0])
-                if diff_mouth_width_y > (face_width_x * 0.121227) and (
-                        datetime.now() - time_last).total_seconds() > gesture_delay:
+                if diff_mouth_width_y > (face_width_x * 0.121227) and (datetime.now() - time_last).total_seconds() > gesture_delay:
                     time_last = datetime.now()
                     trigger_gesture(values[1])
                 if diff_eyebrows_y > (face_width_x * 0.287071):
@@ -80,8 +84,7 @@ def came(values):
                         eyebrows_raised_time = datetime.now()
                     # eyebrows up for more than 2 sec gesture
 
-                    if (datetime.now() - eyebrows_raised_time).total_seconds() > 2 and (
-                            datetime.now() - time_last).total_seconds() > gesture_delay:
+                    if (datetime.now() - eyebrows_raised_time).total_seconds() > 2 and (datetime.now() - time_last).total_seconds() > gesture_delay:
                         time_last = datetime.now()
                         trigger_gesture(values[2]) # this gesture is not always triggered
                 else:
@@ -110,7 +113,10 @@ def came(values):
         # -1 mirrors the image in order to provide user friendly interface
         cv2.imshow("Camera Mouse", img[:, ::-1, :])
 
-        cv2.waitKey(1)
+        key = cv2.pollKey()
+        if key == 27:
+            break
+
 
 
 if __name__ == "__main__":
