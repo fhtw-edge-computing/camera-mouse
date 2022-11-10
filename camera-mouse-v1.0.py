@@ -7,6 +7,15 @@ import mouse  # move function of the mouse
 from datetime import datetime
 import pyautogui  # click function and keyboard simulation
 
+## Eye blink integration
+
+import drowsy_detection
+
+vidFrameHandler=drowsy_detection.VideoFrameHandler()
+thresholds = {
+    "EAR_THRESH": 0.18,
+    "WAIT_TIME": 0.7,
+}
 
 def mouse_move(x, y):
     mouse.move(x, y, absolute=False, duration=0)
@@ -30,17 +39,39 @@ def save_callback():
     if len(set(values)) != 4:
         messagebox.showwarning("Warning", "All values must be unique")
     else:
-        came(values)
+        # came(values)
+        cam_mouse_EAR()
         master.destroy()
+
+def cam_mouse_EAR():
+    cap = cv2.VideoCapture(2)
+    eye_blinked_prev=False
+    while True:
+        success, img = cap.read()
+        frame, eye_blinked = vidFrameHandler.process(img,thresholds)
+
+        if eye_blinked and eye_blinked_prev == False:
+            #x, y = mouse.get_position()
+            print('click')
+            x, y = mouse.get_position()
+            pyautogui.click(x,y)
+
+        eye_blinked_prev=eye_blinked
+        cv2.imshow("Camera Mouse", frame)
+
+        key = cv2.pollKey()
+        if key == 27:
+            break
 
 
 # Camera Mouse
 def came(values):
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
     pTime = 0  # time when previous frame processed
     mp_draw = mp.solutions.drawing_utils
     mp_face_mesh = mp.solutions.face_mesh
-    face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1)  # recognizes only one face at a time
+    # recognizes only one face at a time
+    face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, refine_landmarks=True, min_detection_confidence=0.5, min_tracking_confidence=0.5)
     draw_spec = mp_draw.DrawingSpec(thickness=1, circle_radius=2)
     mouse_speed = 5
     time_last = datetime.now()
