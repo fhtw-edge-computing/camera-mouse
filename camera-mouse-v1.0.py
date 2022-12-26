@@ -11,10 +11,9 @@ import pyautogui  # click function and keyboard simulation
 
 import drowsy_detection
 
-vidFrameHandler=drowsy_detection.VideoFrameHandler()
 thresholds = {
     "EAR_THRESH": 0.18,
-    "WAIT_TIME": 0.7,
+    "WAIT_TIME": 1.0,
 }
 
 def mouse_move(x, y):
@@ -45,11 +44,15 @@ def save_callback():
 
 def cam_mouse_EAR():
     cap = cv2.VideoCapture(2)
+    #cap = cv2.VideoCapture("taster-rotate+cut-lachen2.mp4")
+    vidFrameHandler = drowsy_detection.VideoFrameHandler(cap)
+
     eye_blinked_prev=False
     while True:
         success, img = cap.read()
-        frame, eye_blinked = vidFrameHandler.process(img,thresholds)
+        frame, state_tracker = vidFrameHandler.process(img,thresholds)
 
+        eye_blinked=state_tracker[0]["play_alarm"]
         if eye_blinked and eye_blinked_prev == False:
             #x, y = mouse.get_position()
             print('click')
