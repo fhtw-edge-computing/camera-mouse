@@ -91,16 +91,25 @@ def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_SIMPLEX, fntScal
 
 
 class VideoFrameHandler:
-    def __init__(self):
+    def __init__(self, cap):
         """
         Initialize the necessary constants, mediapipe app
         and tracker variables
         """
+        self.frame_w=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.frame_h=cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
         # Left and right eye chosen landmarks.
-        self.eye_idxs = {
-            "left": [362, 385, 387, 263, 373, 380],
-            "right": [33, 160, 158, 133, 153, 144],
+        self.lm_idxs = [
+           # {
+           # "left": [57, 37, 267, 287, 314, 84],
+           # "right": [57, 37, 267, 287, 314, 84],
+        #}
+          {
+           "left": [362, 385, 387, 263, 373, 380],
+           "right": [33, 160, 158, 133, 153, 144],
         }
+        ]
 
         # Used for coloring landmark points.
         # Its value depends on the current EAR value.
@@ -111,12 +120,19 @@ class VideoFrameHandler:
         self.facemesh_model = get_mediapipe_app()
 
         # For tracking counters and sharing states in and out of callbacks.
-        self.state_tracker = {
+        self.state_tracker = [{
             "start_time": time.perf_counter(),
             "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
             "COLOR": self.GREEN,
             "play_alarm": False,
         }
+            #,{
+            #"start_time": time.perf_counter(),
+            #"DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+            #"COLOR": self.GREEN,
+            #"play_alarm": False,
+        #}
+        ]
 
         self.EAR_txt_pos = (10, 30)
 
@@ -136,51 +152,55 @@ class VideoFrameHandler:
 
         # To improve performance,
         # mark the frame as not writeable to pass by reference.
-        frame.flags.writeable = False
-        frame_h, frame_w, _ = frame.shape
+        if hasattr(frame, 'flags'):
+            frame.flags.writeable = False
 
-        DROWSY_TIME_txt_pos = (10, int(frame_h // 2 * 1.7))
-        ALM_txt_pos = (10, int(frame_h // 2 * 1.85))
+        #frame_h, frame_w, _ = frame.shape
+
+        DROWSY_TIME_txt_pos = (10, int(self.frame_h // 2 * 1.7))
+        ALM_txt_pos = (10, int(self.frame_h // 2 * 1.85))
 
         results = self.facemesh_model.process(frame)
 
         if results.multi_face_landmarks:
-            landmarks = results.multi_face_landmarks[0].landmark
-            EAR, coordinates = calculate_avg_ear(landmarks, self.eye_idxs["left"], self.eye_idxs["right"], frame_w, frame_h)
-            frame = plot_eye_landmarks(frame, coordinates[0], coordinates[1], self.state_tracker["COLOR"])
+            for state_tracker, lm_idxs in zip(self.state_tracker,self.lm_idxs):
+                landmarks = results.multi_face_landmarks[0].landmark
+                EAR, coordinates = calculate_avg_ear(landmarks, lm_idxs["left"], lm_idxs["right"], self.frame_w, self.frame_h)
+                frame = plot_eye_landmarks(frame, coordinates[0], coordinates[1], state_tracker["COLOR"])
 
-            if EAR < thresholds["EAR_THRESH"]:
+                if EAR < thresholds["EAR_THRESH"]:
 
-                # Increase DROWSY_TIME to track the time period with EAR less than the threshold
-                # and reset the start_time for the next iteration.
-                end_time = time.perf_counter()
+                    # Increase DROWSY_TIME to track the time period with EAR less than the threshold
+                    # and reset the start_time for the next iteration.
+                    end_time = time.perf_counter()
 
-                self.state_tracker["DROWSY_TIME"] += end_time - self.state_tracker["start_time"]
-                self.state_tracker["start_time"] = end_time
-                self.state_tracker["COLOR"] = self.RED
+                    state_tracker["DROWSY_TIME"] += end_time - state_tracker["start_time"]
+                    state_tracker["start_time"] = end_time
+                    state_tracker["COLOR"] = self.RED
 
-                if self.state_tracker["DROWSY_TIME"] >= thresholds["WAIT_TIME"]:
-                    self.state_tracker["play_alarm"] = True
-                    plot_text(frame, "WAKE UP! WAKE UP", ALM_txt_pos, self.state_tracker["COLOR"])
+                    if state_tracker["DROWSY_TIME"] >= thresholds["WAIT_TIME"]:
+                        state_tracker["play_alarm"] = True
+                        plot_text(frame, "WAKE UP! WAKE UP", ALM_txt_pos, state_tracker["COLOR"])
 
-            else:
-                self.state_tracker["start_time"] = time.perf_counter()
-                self.state_tracker["DROWSY_TIME"] = 0.0
-                self.state_tracker["COLOR"] = self.GREEN
-                self.state_tracker["play_alarm"] = False
+                else:
+                    state_tracker["start_time"] = time.perf_counter()
+                    state_tracker["DROWSY_TIME"] = 0.0
+                    state_tracker["COLOR"] = self.GREEN
+                    state_tracker["play_alarm"] = False
 
-            EAR_txt = f"EAR: {round(EAR, 2)}"
-            DROWSY_TIME_txt = f"DROWSY: {round(self.state_tracker['DROWSY_TIME'], 3)} Secs"
-            plot_text(frame, EAR_txt, self.EAR_txt_pos, self.state_tracker["COLOR"])
-            plot_text(frame, DROWSY_TIME_txt, DROWSY_TIME_txt_pos, self.state_tracker["COLOR"])
+                EAR_txt = f"EAR: {round(EAR, 2)}"
+                DROWSY_TIME_txt = f"DROWSY: {round(state_tracker['DROWSY_TIME'], 3)} Secs"
+                plot_text(frame, EAR_txt, self.EAR_txt_pos, state_tracker["COLOR"])
+                plot_text(frame, DROWSY_TIME_txt, DROWSY_TIME_txt_pos, state_tracker["COLOR"])
 
         else:
-            self.state_tracker["start_time"] = time.perf_counter()
-            self.state_tracker["DROWSY_TIME"] = 0.0
-            self.state_tracker["COLOR"] = self.GREEN
-            self.state_tracker["play_alarm"] = False
+            for state_tracker in self.state_tracker:
+                state_tracker["start_time"] = time.perf_counter()
+                state_tracker["DROWSY_TIME"] = 0.0
+                state_tracker["COLOR"] = self.GREEN
+                state_tracker["play_alarm"] = False
 
             # Flip the frame horizontally for a selfie-view display.
             frame = cv2.flip(frame, 1)
 
-        return frame, self.state_tracker["play_alarm"]
+        return frame, self.state_tracker
