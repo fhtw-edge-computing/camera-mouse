@@ -12,9 +12,50 @@ import pyautogui  # click function and keyboard simulation
 import drowsy_detection
 
 thresholds = {
-    "EAR_THRESH": 0.18,
+    "EAR_THRESH": 0.40,
     "WAIT_TIME": 1.0,
 }
+
+state_gesture=[{
+    "label": "Mouth Open",
+    "gesture_idxs": [57, 37, 267, 287, 314, 84],
+    "EAR_THRESH": 0.40,
+    "WAIT_TIME": 0.5,
+    "operator": ">",
+    "start_time": time.perf_counter(),
+    "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+    "COLOR": drowsy_detection.GREEN,
+    "play_alarm": False,
+    "play_alarm_prev": False,
+    "action": "Double Click"
+    },
+    {
+    "label": "Eye_l",
+    "gesture_idxs": [362, 385, 387, 263, 373, 380],
+    "EAR_THRESH": 0.22,
+    "WAIT_TIME": 0.5,
+    "operator": "<",
+    "start_time": time.perf_counter(),
+    "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+    "COLOR": drowsy_detection.GREEN,
+    "play_alarm": False,
+    "play_alarm_prev": False,
+    "action": "Left Click"
+    },
+    {
+        "label": "Eye_r",
+        "gesture_idxs": [33, 160, 158, 133, 153, 144],
+        "EAR_THRESH": 0.22,
+        "WAIT_TIME": 0.5,
+        "operator": "<",
+        "start_time": time.perf_counter(),
+        "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+        "COLOR": drowsy_detection.GREEN,
+        "play_alarm": False,
+        "play_alarm_prev": False,
+        "action": "Right Click"
+    }
+]
 
 def mouse_move(x, y):
     mouse.move(x, y, absolute=False, duration=0)
@@ -45,21 +86,20 @@ def save_callback():
 def cam_mouse_EAR():
     cap = cv2.VideoCapture(2)
     #cap = cv2.VideoCapture("taster-rotate+cut-lachen2.mp4")
-    vidFrameHandler = drowsy_detection.VideoFrameHandler(cap)
+    vidFrameHandler = drowsy_detection.VideoFrameHandler(cap,state_gesture)
 
-    eye_blinked_prev=False
     while True:
         success, img = cap.read()
-        frame, state_tracker = vidFrameHandler.process(img,thresholds)
+        frame, state_tracker = vidFrameHandler.process(img)
 
-        eye_blinked=state_tracker[0]["play_alarm"]
-        if eye_blinked and eye_blinked_prev == False:
-            #x, y = mouse.get_position()
-            print('click')
-            x, y = mouse.get_position()
-            pyautogui.click(x,y)
+        for gesture in state_tracker:
+            eye_blinked=gesture["play_alarm"]
+            eye_blinked_prev = gesture["play_alarm_prev"]
+            if eye_blinked and eye_blinked_prev==False:
+                trigger_gesture(gesture["action"])
 
-        eye_blinked_prev=eye_blinked
+            gesture["play_alarm_prev"]=gesture["play_alarm"]
+
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
