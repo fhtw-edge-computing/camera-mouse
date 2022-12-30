@@ -7,12 +7,15 @@ import mouse  # move function of the mouse
 from datetime import datetime
 import pyautogui  # click function and keyboard simulation
 import chime
+from queue import Queue
 
 ## Eye blink integration
 
 import drowsy_detection
 
-mouse_speed=5
+mouse_speed=10
+last_nose_pos=(-1,-1)
+nose_pos_q=Queue(maxsize=3)
 
 state_gesture=[{
     "label": "Mouth Open",
@@ -113,14 +116,30 @@ def cam_mouse_EAR():
 def handle_mouse_action(nose_pos, cap):
     frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    mouse_move_joystick(nose_pos,frame_w,frame_h)
 
+def mouse_move_direct(nose_pos,frame_w,frame_h):
+    global last_nose_pos
+
+    if last_nose_pos==(-1,-1):
+        last_nose_pos=nose_pos
+
+    avg_nose_pos=((last_nose_pos[0]+nose_pos[0])/2,(last_nose_pos[1]+nose_pos[1])/2)
+
+    diff_nose_pos=(last_nose_pos[0]-avg_nose_pos[0],last_nose_pos[1]-avg_nose_pos[1])
+    if(abs(diff_nose_pos[0])>2 or abs(diff_nose_pos[1])> 2):
+        mouse_move(diff_nose_pos[0]*mouse_speed,-1*diff_nose_pos[1]*mouse_speed)
+
+    last_nose_pos = avg_nose_pos
+
+def mouse_move_joystick(nose_pos,frame_w,frame_h):
     if(nose_pos[0]>(frame_w*0.55)):
         mouse_move(-1 * mouse_speed, 0)
-    elif(nose_pos[0]<(frame_w*0.45)):
+    if(nose_pos[0]<(frame_w*0.45)):
         mouse_move(1 * mouse_speed, 0)
-    elif (nose_pos[1] > (frame_w * 0.55)):
+    if (nose_pos[1] > (frame_w * 0.55)):
         mouse_move(0,1 * mouse_speed)
-    elif(nose_pos[1]<(frame_w*0.45)):
+    if(nose_pos[1]<(frame_w*0.45)):
         mouse_move(0,-1 * mouse_speed)
 
 
