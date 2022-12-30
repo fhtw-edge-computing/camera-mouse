@@ -68,6 +68,10 @@ def get_ear(landmarks, refer_idxs, frame_width, frame_height):
 
     return ear, coords_points
 
+def get_nose_pos(landmarks, refer_idx, frame_width, frame_height):
+    lm = landmarks[refer_idx]
+    coord = denormalize_coordinates(lm.x, lm.y, frame_width, frame_height)
+    return coord
 
 def calculate_avg_ear(landmarks, gesture_idxs, image_w, image_h):
     # Calculate Eye aspect ratio
@@ -145,12 +149,15 @@ class VideoFrameHandler:
         ALM_txt_pos = (10, int(self.frame_h // 2 * 1.85))
 
         results = self.facemesh_model.process(frame)
+        nose_pos=(self.frame_w/2,self.frame_h/2)
 
         if results.multi_face_landmarks:
             for state_tracker, idx in zip(self.state_tracker, range(len(self.state_tracker))):
                 landmarks = results.multi_face_landmarks[0].landmark
                 EAR, lm_coordinates = calculate_avg_ear(landmarks, state_tracker["gesture_idxs"], self.frame_w, self.frame_h)
                 frame = plot_eye_landmarks(frame, lm_coordinates, state_tracker["COLOR"])
+                nose_pos=get_nose_pos(landmarks,1,self.frame_w,self.frame_h)
+                cv2.circle(frame, nose_pos, 2,mp.solutions.drawing_utils.BLUE_COLOR, -1)
 
                 local_map={
                     "EAR":EAR,
@@ -184,10 +191,11 @@ class VideoFrameHandler:
         else:
             for state_tracker in self.state_tracker:
                 self.reset_state(state_tracker)
-            # Flip the frame horizontally for a selfie-view display.
-            frame = cv2.flip(frame, 1)
 
-        return frame, self.state_tracker
+        # Flip the frame horizontally for a selfie-view display.
+        frame = cv2.flip(frame, 1)
+
+        return frame, self.state_tracker, nose_pos
 
     def reset_state(self, state_tracker):
         state_tracker["start_time"] = time.perf_counter()

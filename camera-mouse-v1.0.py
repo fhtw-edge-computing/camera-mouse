@@ -6,15 +6,13 @@ import time  # can be replaced by datetime
 import mouse  # move function of the mouse
 from datetime import datetime
 import pyautogui  # click function and keyboard simulation
+import chime
 
 ## Eye blink integration
 
 import drowsy_detection
 
-thresholds = {
-    "EAR_THRESH": 0.40,
-    "WAIT_TIME": 1.0,
-}
+mouse_speed=5
 
 state_gesture=[{
     "label": "Mouth Open",
@@ -66,13 +64,16 @@ def trigger_gesture(action):
     print("Gesture triggered: "+action)
     if action == "Left Click":
         pyautogui.click(x, y)
+        chime.success()
     elif action == "Double Click":
         pyautogui.doubleClick(x, y)
+        chime.info()
     elif action == "Right Click":
         pyautogui.rightClick(x, y)
+        chime.warning()
     else:
         pyautogui.press("esc")
-
+        chime.error()
 
 def save_callback():
     values = [v.get() for v in variables]
@@ -90,7 +91,9 @@ def cam_mouse_EAR():
 
     while True:
         success, img = cap.read()
-        frame, state_tracker = vidFrameHandler.process(img)
+        #    # Flip the frame horizontally for a selfie-view display.
+        #img = cv2.flip(img, 1)
+        frame, state_tracker, nose_pos = vidFrameHandler.process(img)
 
         for gesture in state_tracker:
             eye_blinked=gesture["play_alarm"]
@@ -100,11 +103,25 @@ def cam_mouse_EAR():
 
             gesture["play_alarm_prev"]=gesture["play_alarm"]
 
+        handle_mouse_action(nose_pos,cap)
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
         if key == 27:
             break
+
+def handle_mouse_action(nose_pos, cap):
+    frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+    if(nose_pos[0]>(frame_w*0.55)):
+        mouse_move(-1 * mouse_speed, 0)
+    elif(nose_pos[0]<(frame_w*0.45)):
+        mouse_move(1 * mouse_speed, 0)
+    elif (nose_pos[1] > (frame_w * 0.55)):
+        mouse_move(0,1 * mouse_speed)
+    elif(nose_pos[1]<(frame_w*0.45)):
+        mouse_move(0,-1 * mouse_speed)
 
 
 # Camera Mouse
@@ -194,31 +211,32 @@ def came(values):
 
 
 if __name__ == "__main__":
-    master = Tk()  # create GUI Object
-    master.title("Camera Mouse GUI")
+    #master = Tk()  # create GUI Object
+    #master.title("Camera Mouse GUI")
     # list with possible actions
-    OPTIONS = [
-        "Left Click",
-        "Double Click",
-        "Right Click",
-        "Esc button"
-    ]
-    variables = [StringVar(master) for _ in OPTIONS]
+    #OPTIONS = [
+    #    "Left Click",
+    #    "Double Click",
+    #    "Right Click",
+    #    "Esc button"
+    #]
+    #variables = [StringVar(master) for _ in OPTIONS]
     # list with possible gestures
-    ButtonsList = [
-        "Smile wide with closed mouth",
-        "Open your mouth as saying 'o'",
-        "Raising the eyebrows for more than 3 sec",
-        "Raising the eyebrows for less than 3 sec"
-    ]
-    for i, label in enumerate(ButtonsList):
-        lab = Label(master, text=label)
-        lab.pack()
-        variables[i].set(OPTIONS[i])
-        w = OptionMenu(master, variables[i], *OPTIONS)  # creates the dropdown menus
-        w.pack()  # displays the "w" object in the GUI window
+    #ButtonsList = [
+    #    "Smile wide with closed mouth",
+    #    "Open your mouth as saying 'o'",
+    #    "Raising the eyebrows for more than 3 sec",
+    #    "Raising the eyebrows for less than 3 sec"
+    #]
+    #for i, label in enumerate(ButtonsList):
+    #    lab = Label(master, text=label)
+    #    lab.pack()
+    #    variables[i].set(OPTIONS[i])
+    #    w = OptionMenu(master, variables[i], *OPTIONS)  # creates the dropdown menus
+    #    w.pack()  # displays the "w" object in the GUI window
     # add sensitivity
     # add speed
-    button = Button(master, text="save", command=save_callback)
-    button.pack()
-    mainloop()
+    #button = Button(master, text="save", command=save_callback)
+    #button.pack()
+    #mainloop()
+    cam_mouse_EAR()
