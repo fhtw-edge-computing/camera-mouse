@@ -8,6 +8,7 @@ from datetime import datetime
 import pyautogui  # click function and keyboard simulation
 import chime
 from queue import Queue
+import math
 
 ## Eye blink integration
 
@@ -133,15 +134,30 @@ def mouse_move_direct(nose_pos,frame_w,frame_h):
     last_nose_pos = avg_nose_pos
 
 def mouse_move_joystick(nose_pos,frame_w,frame_h):
-    if(nose_pos[0]>(frame_w*0.55)):
-        mouse_move(-1 * mouse_speed, 0)
-    if(nose_pos[0]<(frame_w*0.45)):
-        mouse_move(1 * mouse_speed, 0)
-    if (nose_pos[1] > (frame_w * 0.55)):
-        mouse_move(0,1 * mouse_speed)
-    if(nose_pos[1]<(frame_w*0.45)):
-        mouse_move(0,-1 * mouse_speed)
+    global last_nose_pos
 
+    mouse_speed_co=1.1
+    thresh_percentage=(0.55,0.45)
+    mouse_speed_max=20
+    thresh_pixel=(frame_w*thresh_percentage[0],frame_w*thresh_percentage[1],frame_h*thresh_percentage[0],frame_h*thresh_percentage[1])
+
+    mouse_speed_x=0
+    mouse_speed_y=0
+
+    if(nose_pos[0]>thresh_pixel[0]):
+        mouse_speed_x = -1*min(math.pow(mouse_speed_co, abs(nose_pos[0]-thresh_pixel[0])),mouse_speed_max)
+        #mouse_move(-1 * mouse_speed[0], 0)
+    if(nose_pos[0]<thresh_pixel[1]):
+        mouse_speed_x = min(math.pow(mouse_speed_co, abs(nose_pos[0] - thresh_pixel[1])),mouse_speed_max)
+        #mouse_move(1 * mouse_speed[0], 0)
+    if (nose_pos[1] > thresh_pixel[2]):
+        mouse_speed_y = min(math.pow(mouse_speed_co, abs(nose_pos[1] - thresh_pixel[2])),mouse_speed_max)
+        #mouse_move(0,1 * mouse_speed[1])
+    if(nose_pos[1]<thresh_pixel[3]):
+        mouse_speed_y = -1*min(math.pow(mouse_speed_co, abs(nose_pos[1] - thresh_pixel[3])),mouse_speed_max)
+        #mouse_move(0,-1 * mouse_speed[1])
+
+    mouse_move(mouse_speed_x,mouse_speed_y)
 
 # Camera Mouse
 def came(values):
