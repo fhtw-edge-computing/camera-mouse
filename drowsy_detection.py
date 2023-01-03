@@ -146,7 +146,7 @@ def get_head_pose(frame, landmarks, img_w, img_h):
     # nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
 
     p1 = (int(nose_2d[0]), int(nose_2d[1]))
-    p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
+    p2 = (int(nose_2d[0] + y * 5), int(nose_2d[1] - x * 5))
 
     cv2.line(frame, p1, p2, (255, 0, 0), 3)
     head_pose=(x,y,z)
