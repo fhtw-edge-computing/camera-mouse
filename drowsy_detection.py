@@ -94,6 +94,64 @@ def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_SIMPLEX, fntScal
     return image
 
 
+def get_head_pose(frame, landmarks, img_w, img_h):
+    face_3d = []
+    face_2d = []
+
+    for idx in [33,263,1,61,291,199]:
+        lm=landmarks[idx]
+        if idx == 1:
+            nose_2d = (lm.x * img_w, lm.y * img_h)
+            nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * img_w)
+
+        x, y = int(lm.x * img_w), int(lm.y * img_h)
+
+        # Get the 2D Coordinates
+        face_2d.append([x, y])
+
+        # Get the 3D Coordinates
+        face_3d.append([x, y, lm.z])
+
+    # Convert it to the NumPy array
+    face_2d = np.array(face_2d, dtype=np.float64)
+
+    # Convert it to the NumPy array
+    face_3d = np.array(face_3d, dtype=np.float64)
+
+    # The camera matrix
+    focal_length = 1 * img_w
+
+    cam_matrix = np.array([[focal_length, 0, img_h / 2],
+                           [0, focal_length, img_w / 2],
+                           [0, 0, 1]])
+
+    # The distortion parameters
+    dist_matrix = np.zeros((4, 1), dtype=np.float64)
+
+    # Solve PnP
+    success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
+
+    # Get rotational matrix
+    rmat, jac = cv2.Rodrigues(rot_vec)
+
+    # Get angles
+    angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
+
+    # Get the y rotation degree
+    x = angles[0] * 360
+    y = angles[1] * 360
+    z = angles[2] * 360
+
+    # Display the nose direction
+    # nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
+
+    p1 = (int(nose_2d[0]), int(nose_2d[1]))
+    p2 = (int(nose_2d[0] + y * 10), int(nose_2d[1] - x * 10))
+
+    cv2.line(frame, p1, p2, (255, 0, 0), 3)
+    head_pose=(x,y,z)
+    return head_pose
+
 class VideoFrameHandler:
     def __init__(self, cap, state_gesture):
         """
@@ -150,10 +208,12 @@ class VideoFrameHandler:
 
         results = self.facemesh_model.process(frame)
         nose_pos=(self.frame_w/2,self.frame_h/2)
+        head_pose=(0.0,0.0,0.0)
 
         if results.multi_face_landmarks:
+            landmarks = results.multi_face_landmarks[0].landmark
+            head_pose=get_head_pose(frame,landmarks,self.frame_w,self.frame_h)
             for state_tracker, idx in zip(self.state_tracker, range(len(self.state_tracker))):
-                landmarks = results.multi_face_landmarks[0].landmark
                 EAR, lm_coordinates = calculate_avg_ear(landmarks, state_tracker["gesture_idxs"], self.frame_w, self.frame_h)
                 frame = plot_eye_landmarks(frame, lm_coordinates, state_tracker["COLOR"])
                 nose_pos=get_nose_pos(landmarks,1,self.frame_w,self.frame_h)
@@ -195,7 +255,7 @@ class VideoFrameHandler:
         # Flip the frame horizontally for a selfie-view display.
         #frame = cv2.flip(frame, 1)
 
-        return frame, self.state_tracker, nose_pos
+        return frame, self.state_tracker, nose_pos, head_pose
 
     def reset_state(self, state_tracker):
         state_tracker["start_time"] = time.perf_counter()

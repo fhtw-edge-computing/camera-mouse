@@ -97,7 +97,7 @@ def cam_mouse_EAR():
         success, img = cap.read()
         #    # Flip the frame horizontally for a selfie-view display.
         img = cv2.flip(img, 1)
-        frame, state_tracker, nose_pos = vidFrameHandler.process(img)
+        frame, state_tracker, nose_pos, head_pose = vidFrameHandler.process(img)
 
         for gesture in state_tracker:
             eye_blinked=gesture["play_alarm"]
@@ -107,7 +107,7 @@ def cam_mouse_EAR():
 
             gesture["play_alarm_prev"]=gesture["play_alarm"]
 
-        handle_mouse_action(nose_pos,cap)
+        handle_mouse_action(head_pose,cap)
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
@@ -117,7 +117,8 @@ def cam_mouse_EAR():
 def handle_mouse_action(nose_pos, cap):
     frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    mouse_move_joystick(nose_pos,frame_w,frame_h)
+    #mouse_move_joystick(nose_pos,frame_w,frame_h)
+    mouse_move_joystick_head_pose(nose_pos,frame_w,frame_h)
 
 def mouse_move_direct(nose_pos,frame_w,frame_h):
     global last_nose_pos
@@ -132,6 +133,37 @@ def mouse_move_direct(nose_pos,frame_w,frame_h):
         mouse_move(diff_nose_pos[0]*mouse_speed,-1*diff_nose_pos[1]*mouse_speed)
 
     last_nose_pos = avg_nose_pos
+
+def mouse_move_joystick_head_pose(head_pose,frame_w,frame_h):
+    pitch=head_pose[0]
+    yaw=head_pose[1]
+
+    mouse_speed_co=1.1
+    mouse_speed_max=25
+    acceleration=2.3
+    threshold=(-5,5,-5,5)
+
+    mouse_speed_x=0
+    mouse_speed_y=0
+
+    # See where the user's head tilting
+    if yaw < threshold[0]:
+        text = "Looking Left"
+        mouse_speed_x = -1*min(math.pow(mouse_speed_co, abs(yaw*acceleration)),mouse_speed_max)
+    elif yaw > threshold[1]:
+        text = "Looking Right"
+        mouse_speed_x = min(math.pow(mouse_speed_co, abs(yaw*acceleration)), mouse_speed_max)
+    elif pitch < threshold[2]:
+        text = "Looking Down"
+        mouse_speed_y = min(math.pow(mouse_speed_co, abs(pitch*acceleration)), mouse_speed_max)
+    elif pitch > threshold[3]:
+        text = "Looking Up"
+        mouse_speed_y = -1*min(math.pow(mouse_speed_co, abs(pitch*acceleration)), mouse_speed_max)
+    else:
+        text = "Forward"
+
+    #print(text)
+    mouse_move(mouse_speed_x, mouse_speed_y)
 
 def mouse_move_joystick(nose_pos,frame_w,frame_h):
     global last_nose_pos
