@@ -32,7 +32,7 @@ state_gesture=[{
     "action": "Double Click"
     },
     {
-    "label": "Eye_l",
+    "label": "Eye_r",
     "gesture_idxs": [362, 385, 387, 263, 373, 380],
     "EAR_THRESH": 0.22,
     "WAIT_TIME": 0.5,
@@ -42,10 +42,10 @@ state_gesture=[{
     "COLOR": drowsy_detection.GREEN,
     "play_alarm": False,
     "play_alarm_prev": False,
-    "action": "Left Click"
+    "action": "Right Click"
     },
     {
-        "label": "Eye_r",
+        "label": "Eye_l",
         "gesture_idxs": [33, 160, 158, 133, 153, 144],
         "EAR_THRESH": 0.22,
         "WAIT_TIME": 0.5,
@@ -55,7 +55,7 @@ state_gesture=[{
         "COLOR": drowsy_detection.GREEN,
         "play_alarm": False,
         "play_alarm_prev": False,
-        "action": "Right Click"
+        "action": "Left Click"
     }
 ]
 
@@ -96,7 +96,7 @@ def cam_mouse_EAR():
     while True:
         success, img = cap.read()
         #    # Flip the frame horizontally for a selfie-view display.
-        #img = cv2.flip(img, 1)
+        img = cv2.flip(img, 1)
         frame, state_tracker, nose_pos = vidFrameHandler.process(img)
 
         for gesture in state_tracker:
@@ -144,10 +144,10 @@ def mouse_move_joystick(nose_pos,frame_w,frame_h):
     mouse_speed_x=0
     mouse_speed_y=0
 
-    if(nose_pos[0]>thresh_pixel[0]):
+    if(nose_pos[0]<thresh_pixel[0]):
         mouse_speed_x = -1*min(math.pow(mouse_speed_co, abs(nose_pos[0]-thresh_pixel[0])),mouse_speed_max)
         #mouse_move(-1 * mouse_speed[0], 0)
-    if(nose_pos[0]<thresh_pixel[1]):
+    if(nose_pos[0]>thresh_pixel[1]):
         mouse_speed_x = min(math.pow(mouse_speed_co, abs(nose_pos[0] - thresh_pixel[1])),mouse_speed_max)
         #mouse_move(1 * mouse_speed[0], 0)
     if (nose_pos[1] > thresh_pixel[2]):

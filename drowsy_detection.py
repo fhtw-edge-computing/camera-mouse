@@ -193,7 +193,7 @@ class VideoFrameHandler:
                 self.reset_state(state_tracker)
 
         # Flip the frame horizontally for a selfie-view display.
-        frame = cv2.flip(frame, 1)
+        #frame = cv2.flip(frame, 1)
 
         return frame, self.state_tracker, nose_pos
 
