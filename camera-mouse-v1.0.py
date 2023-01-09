@@ -22,7 +22,7 @@ state_gesture=[{
     "label": "Mouth Open",
     "gesture_idxs": [57, 37, 267, 287, 314, 84],
     "EAR_THRESH": 0.40,
-    "WAIT_TIME": 0.5,
+    "WAIT_TIME": 0.6,
     "operator": ">",
     "start_time": time.perf_counter(),
     "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
@@ -34,8 +34,8 @@ state_gesture=[{
     {
     "label": "Eye_r",
     "gesture_idxs": [362, 385, 387, 263, 373, 380],
-    "EAR_THRESH": 0.22,
-    "WAIT_TIME": 0.5,
+    "EAR_THRESH": 0.18,
+    "WAIT_TIME": 0.6,
     "operator": "<",
     "start_time": time.perf_counter(),
     "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
@@ -47,8 +47,8 @@ state_gesture=[{
     {
         "label": "Eye_l",
         "gesture_idxs": [33, 160, 158, 133, 153, 144],
-        "EAR_THRESH": 0.22,
-        "WAIT_TIME": 0.5,
+        "EAR_THRESH": 0.18,
+        "WAIT_TIME": 0.6,
         "operator": "<",
         "start_time": time.perf_counter(),
         "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
@@ -60,6 +60,7 @@ state_gesture=[{
 ]
 
 def mouse_move(x, y):
+    #print("mouse move: x={0}, y={1}".format(x,y))
     mouse.move(x, y, absolute=False, duration=0)
 
 
@@ -140,8 +141,8 @@ def mouse_move_joystick_head_pose(head_pose,frame_w,frame_h):
 
     mouse_speed_co=1.1
     mouse_speed_max=25
-    acceleration=2.3
-    threshold=(-5,5,-5,5)
+    acceleration=3
+    threshold=(-2,2,-2,2)
 
     mouse_speed_x=0
     mouse_speed_y=0
@@ -150,17 +151,15 @@ def mouse_move_joystick_head_pose(head_pose,frame_w,frame_h):
     if yaw < threshold[0]:
         text = "Looking Left"
         mouse_speed_x = -1*min(math.pow(mouse_speed_co, abs(yaw*acceleration)),mouse_speed_max)
-    elif yaw > threshold[1]:
+    if yaw > threshold[1]:
         text = "Looking Right"
         mouse_speed_x = min(math.pow(mouse_speed_co, abs(yaw*acceleration)), mouse_speed_max)
-    elif pitch < threshold[2]:
+    if pitch < threshold[2]:
         text = "Looking Down"
         mouse_speed_y = min(math.pow(mouse_speed_co, abs(pitch*acceleration)), mouse_speed_max)
-    elif pitch > threshold[3]:
+    if pitch > threshold[3]:
         text = "Looking Up"
         mouse_speed_y = -1*min(math.pow(mouse_speed_co, abs(pitch*acceleration)), mouse_speed_max)
-    else:
-        text = "Forward"
 
     #print(text)
     mouse_move(mouse_speed_x, mouse_speed_y)
