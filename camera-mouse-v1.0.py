@@ -18,31 +18,38 @@ mouse_speed=10
 last_nose_pos=(-1,-1)
 nose_pos_q=Queue(maxsize=3)
 
+pyautogui.FAILSAFE = False
+mouse_mode=False
+frame_counter=0
+
+# Define gestures by selecting the landmark indexes which shall be used for calculation the EAR value: https://learnopencv.com/driver-drowsiness-detection-using-mediapipe-in-python/
+# The landmark indexes can be found here (left / right must be flipped because of selfie view): https://raw.githubusercontent.com/google/mediapipe/master/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png
+
 state_gesture=[{
-    "label": "Mouth Open",
-    "gesture_idxs": [57, 37, 267, 287, 314, 84],
-    "EAR_THRESH": 0.40,
-    "WAIT_TIME": 0.6,
-    "operator": ">",
-    "start_time": time.perf_counter(),
-    "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-    "COLOR": drowsy_detection.GREEN,
-    "play_alarm": False,
-    "play_alarm_prev": False,
-    "action": "Double Click"
+        "label": "Mouth Open",
+        "gesture_idxs": [57, 37, 267, 287, 314, 84],
+        "EAR_THRESH": 0.40,
+        "WAIT_TIME": 0.6,
+        "operator": ">",
+        "start_time": time.perf_counter(),
+        "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+        "COLOR": drowsy_detection.GREEN,
+        "play_alarm": False,
+        "play_alarm_prev": False,
+        "action": "Double Click"
     },
     {
-    "label": "Eye_r",
-    "gesture_idxs": [362, 385, 387, 263, 373, 380],
-    "EAR_THRESH": 0.18,
-    "WAIT_TIME": 0.6,
-    "operator": "<",
-    "start_time": time.perf_counter(),
-    "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-    "COLOR": drowsy_detection.GREEN,
-    "play_alarm": False,
-    "play_alarm_prev": False,
-    "action": "Right Click"
+        "label": "Eye_r",
+        "gesture_idxs": [362, 385, 387, 263, 373, 380],
+        "EAR_THRESH": 0.18,
+        "WAIT_TIME": 0.6,
+        "operator": "<",
+        "start_time": time.perf_counter(),
+        "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+        "COLOR": drowsy_detection.GREEN,
+        "play_alarm": False,
+        "play_alarm_prev": False,
+        "action": "Right Click"
     },
     {
         "label": "Eye_l",
@@ -56,13 +63,62 @@ state_gesture=[{
         "play_alarm": False,
         "play_alarm_prev": False,
         "action": "Left Click"
-    }
+    },
+#    {
+#        "label": "brow_up_r",
+#        "gesture_idxs": [33, 334, 296, 133, 153, 144],
+#        "EAR_THRESH": 2.9,
+#        "WAIT_TIME": 0.6,
+#        "operator": ">",
+#        "start_time": time.perf_counter(),
+#        "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+#        "COLOR": drowsy_detection.GREEN,
+#        "play_alarm": False,
+#        "play_alarm_prev": False,
+#        "action": ""
+#    },
+    {
+        "label": "brow_up_l",
+#        "gesture_idxs": [33, 105, 66, 133, 153, 144],
+        "gesture_idxs": [33, 105, 66, 263, 153,144],
+        "EAR_THRESH": 0.43,
+        "WAIT_TIME": 0.6,
+        "operator": ">",
+        "start_time": time.perf_counter(),
+        "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+        "COLOR": drowsy_detection.GREEN,
+        "play_alarm": False,
+        "play_alarm_prev": False,
+        "action": "KEY_SPACE"
+    },
+    # {
+    #     "label": "cheek_up",
+    #     "gesture_idxs": [103, 67, 109, 10, 36, 205],
+    #     "EAR_THRESH": 2.5,
+    #     "WAIT_TIME": 0.6,
+    #     "operator": "<",
+    #     "start_time": time.perf_counter(),
+    #     "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
+    #     "COLOR": drowsy_detection.GREEN,
+    #     "play_alarm": False,
+    #     "play_alarm_prev": False,
+    #     "action": ""
+    # }
 ]
 
 def mouse_move(x, y):
     #print("mouse move: x={0}, y={1}".format(x,y))
-    mouse.move(x, y, absolute=False, duration=0)
-
+    if mouse_mode:
+        mouse.move(x, y, absolute=False, duration=0)
+    else:
+        if x < 0:
+            pyautogui.press("left")
+        if x > 0:
+            pyautogui.press("right")
+        if y < 0:
+            pyautogui.press("up")
+        if y > 0:
+            pyautogui.press("down")
 
 def trigger_gesture(action):
     x, y = mouse.get_position()
@@ -72,12 +128,16 @@ def trigger_gesture(action):
         chime.success()
     elif action == "Double Click":
         pyautogui.doubleClick(x, y)
-        chime.info()
+        chime.success()
+        chime.success()
     elif action == "Right Click":
         pyautogui.rightClick(x, y)
         chime.warning()
-    else:
-        pyautogui.press("esc")
+    elif action == "Middle Click":
+        pyautogui.middleClick(x,y)
+        chime.info()
+    elif action == "KEY_SPACE":
+        pyautogui.press("space")
         chime.error()
 
 def save_callback():
@@ -136,13 +196,23 @@ def mouse_move_direct(nose_pos,frame_w,frame_h):
     last_nose_pos = avg_nose_pos
 
 def mouse_move_joystick_head_pose(head_pose,frame_w,frame_h):
+    global frame_counter
+
+    frame_counter+=1
+    if not mouse_mode and not (frame_counter % 8)==0:
+        return
+
     pitch=head_pose[0]
     yaw=head_pose[1]
 
     mouse_speed_co=1.1
     mouse_speed_max=25
     acceleration=3
-    threshold=(-2,2,-2,2)
+
+    threshold=(-2,2,-0,2)
+
+    if not mouse_mode:
+        threshold=(-6,6,-4,6)
 
     mouse_speed_x=0
     mouse_speed_y=0
