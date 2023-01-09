@@ -1,3 +1,5 @@
+import math
+
 import cv2
 import time
 import numpy as np
@@ -89,7 +91,7 @@ def plot_eye_landmarks(frame, lm_coordinates, color):
     #frame = cv2.flip(frame, 1)
     return frame
 
-def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_SIMPLEX, fntScale=0.8, thickness=2):
+def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_SIMPLEX, fntScale=0.6, thickness=2):
     image = cv2.putText(image, text, origin, font, fntScale, color, thickness)
     return image
 
@@ -102,9 +104,11 @@ def get_head_pose(frame, landmarks, img_w, img_h):
         lm=landmarks[idx]
         if idx == 1:
             nose_2d = (lm.x * img_w, lm.y * img_h)
-            nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * img_w)
+            nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
 
         x, y = int(lm.x * img_w), int(lm.y * img_h)
+
+        cv2.circle(frame, (x,y), 4, mp.solutions.drawing_utils.WHITE_COLOR, -1)
 
         # Get the 2D Coordinates
         face_2d.append([x, y])
@@ -121,8 +125,8 @@ def get_head_pose(frame, landmarks, img_w, img_h):
     # The camera matrix
     focal_length = 1 * img_w
 
-    cam_matrix = np.array([[focal_length, 0, img_h / 2],
-                           [0, focal_length, img_w / 2],
+    cam_matrix = np.array([[focal_length, 0, img_w / 2],
+                           [0, focal_length, img_h / 2],
                            [0, 0, 1]])
 
     # The distortion parameters
@@ -131,6 +135,8 @@ def get_head_pose(frame, landmarks, img_w, img_h):
     # Solve PnP
     success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
 
+    #print("Rotation vector {0}".format(rot_vec))
+
     # Get rotational matrix
     rmat, jac = cv2.Rodrigues(rot_vec)
 
@@ -138,19 +144,67 @@ def get_head_pose(frame, landmarks, img_w, img_h):
     angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
 
     # Get the y rotation degree
+    # euler angles
+    #euler=rotationMatrixToEulerAngles(rmat)
+    #x=euler[0]*180/math.pi*100
+    #y=euler[1]*180/math.pi*100
+    #z=euler[2]*180/math.pi*100
+
+    #x=euler[0]*360*100
+    #y=euler[1]*360*100
+    #z=euler[2]*360*100
+
     x = angles[0] * 360
     y = angles[1] * 360
     z = angles[2] * 360
 
     # Display the nose direction
-    # nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
+    nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
+
+    #print("Angles: {0}, x,y,z: {1}, nose_3d_projection {2}".format(angles,(x,y,z),nose_3d_projection))
 
     p1 = (int(nose_2d[0]), int(nose_2d[1]))
     p2 = (int(nose_2d[0] + y * 5), int(nose_2d[1] - x * 5))
+    #p2=(int(nose_3d_projection[0][0][0])*5,int(nose_3d_projection[0][0][1])*5)
 
     cv2.line(frame, p1, p2, (255, 0, 0), 3)
+    plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(10,int(img_h-2*30-20)), (255, 0, 0))
+    plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(10,int(img_h-30-20)), (255, 0, 0))
+    plot_text(frame,"Roll: {0}".format(format(z,".2f")),(10,int(img_h-20)), (255, 0, 0))
+
     head_pose=(x,y,z)
     return head_pose
+
+# Checks if a matrix is a valid rotation matrix.
+def isRotationMatrix(R) :
+    Rt = np.transpose(R)
+    shouldBeIdentity = np.dot(Rt, R)
+    I = np.identity(3, dtype = R.dtype)
+    n = np.linalg.norm(I - shouldBeIdentity)
+    return n < 1e-6
+
+# Calculates rotation matrix to euler angles
+# The result is the same as MATLAB except the order
+# of the euler angles ( x and z are swapped ).
+
+# Thanks to Satya Malik for this code: https://learnopencv.com/rotation-matrix-to-euler-angles/
+def rotationMatrixToEulerAngles(R):
+    assert (isRotationMatrix(R))
+
+    sy = math.sqrt(R[0, 0] * R[0, 0] + R[1, 0] * R[1, 0])
+
+    singular = sy < 1e-6
+
+    if not singular:
+        x = math.atan2(R[2, 1], R[2, 2])
+        y = math.atan2(-R[2, 0], sy)
+        z = math.atan2(R[1, 0], R[0, 0])
+    else:
+        x = math.atan2(-R[1, 2], R[1, 1])
+        y = math.atan2(-R[2, 0], sy)
+        z = 0
+
+    return np.array([x, y, z])
 
 class VideoFrameHandler:
     def __init__(self, cap, state_gesture):
