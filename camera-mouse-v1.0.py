@@ -14,13 +14,15 @@ import math
 
 import drowsy_detection
 
-mouse_speed=10
+mouse_speed=20
 last_nose_pos=(-1,-1)
 nose_pos_q=Queue(maxsize=3)
 
 pyautogui.FAILSAFE = False
-mouse_mode=False
+mouse_mode=True
 frame_counter=0
+
+enabled=True
 
 # Define gestures by selecting the landmark indexes which shall be used for calculation the EAR value: https://learnopencv.com/driver-drowsiness-detection-using-mediapipe-in-python/
 # The landmark indexes can be found here (left / right must be flipped because of selfie view): https://raw.githubusercontent.com/google/mediapipe/master/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png
@@ -113,11 +115,11 @@ def mouse_move(x, y):
     else:
         if x < 0:
             pyautogui.press("left")
-        if x > 0:
+        elif x > 0:
             pyautogui.press("right")
-        if y < 0:
+        elif y < 0:
             pyautogui.press("up")
-        if y > 0:
+        elif y > 0:
             pyautogui.press("down")
 
 def trigger_gesture(action):
@@ -140,6 +142,11 @@ def trigger_gesture(action):
         pyautogui.press("space")
         chime.error()
 
+def calibrate(vidFrameHandler, frame,state_tracker,nose_pos,head_pose,frame_w,frame_h):
+    vidFrameHandler.set_headpose_null(head_pose)
+    screen_size=pyautogui.size()
+    mouse.move(screen_size[0]/2,screen_size[1]/2,absolute=True,duration=0)
+
 def save_callback():
     values = [v.get() for v in variables]
     if len(set(values)) != 4:
@@ -150,6 +157,8 @@ def save_callback():
         master.destroy()
 
 def cam_mouse_EAR():
+    global enabled
+
     cap = cv2.VideoCapture(2)
     #cap = cv2.VideoCapture("taster-rotate+cut-lachen2.mp4")
     vidFrameHandler = drowsy_detection.VideoFrameHandler(cap,state_gesture)
@@ -158,28 +167,33 @@ def cam_mouse_EAR():
         success, img = cap.read()
         #    # Flip the frame horizontally for a selfie-view display.
         img = cv2.flip(img, 1)
+
         frame, state_tracker, nose_pos, head_pose = vidFrameHandler.process(img)
 
-        for gesture in state_tracker:
-            eye_blinked=gesture["play_alarm"]
-            eye_blinked_prev = gesture["play_alarm_prev"]
-            if eye_blinked and eye_blinked_prev==False:
-                trigger_gesture(gesture["action"])
+        if enabled:
+            for gesture in state_tracker:
+                eye_blinked=gesture["play_alarm"]
+                eye_blinked_prev = gesture["play_alarm_prev"]
+                if eye_blinked and eye_blinked_prev==False:
+                    trigger_gesture(gesture["action"])
 
-            gesture["play_alarm_prev"]=gesture["play_alarm"]
+                gesture["play_alarm_prev"]=gesture["play_alarm"]
 
-        handle_mouse_action(head_pose,cap)
+            frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            #mouse_move_direct(nose_pos,frame_w,frame_h)
+            mouse_move_joystick_head_pose(head_pose, frame_w, frame_h)
+
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
+        print(key)
         if key == 27:
             break
-
-def handle_mouse_action(nose_pos, cap):
-    frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    #mouse_move_joystick(nose_pos,frame_w,frame_h)
-    mouse_move_joystick_head_pose(nose_pos,frame_w,frame_h)
+        elif key == 97:
+            enabled=not enabled
+        elif key == 99:
+            calibrate(vidFrameHandler,frame,state_tracker,nose_pos,head_pose,frame_w,frame_h)
 
 def mouse_move_direct(nose_pos,frame_w,frame_h):
     global last_nose_pos
@@ -190,8 +204,8 @@ def mouse_move_direct(nose_pos,frame_w,frame_h):
     avg_nose_pos=((last_nose_pos[0]+nose_pos[0])/2,(last_nose_pos[1]+nose_pos[1])/2)
 
     diff_nose_pos=(last_nose_pos[0]-avg_nose_pos[0],last_nose_pos[1]-avg_nose_pos[1])
-    if(abs(diff_nose_pos[0])>2 or abs(diff_nose_pos[1])> 2):
-        mouse_move(diff_nose_pos[0]*mouse_speed,-1*diff_nose_pos[1]*mouse_speed)
+    if(abs(diff_nose_pos[0])>1 or abs(diff_nose_pos[1])> 1):
+        mouse_move(-1*diff_nose_pos[0]*mouse_speed,-1*diff_nose_pos[1]*mouse_speed)
 
     last_nose_pos = avg_nose_pos
 

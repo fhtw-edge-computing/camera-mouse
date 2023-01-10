@@ -95,86 +95,6 @@ def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_SIMPLEX, fntScal
     image = cv2.putText(image, text, origin, font, fntScale, color, thickness)
     return image
 
-
-def get_head_pose(frame, landmarks, img_w, img_h):
-    face_3d = []
-    face_2d = []
-
-    for idx in [33,263,1,61,291,199]:
-        lm=landmarks[idx]
-        if idx == 1:
-            nose_2d = (lm.x * img_w, lm.y * img_h)
-            nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
-
-        x, y = int(lm.x * img_w), int(lm.y * img_h)
-
-        cv2.circle(frame, (x,y), 4, mp.solutions.drawing_utils.WHITE_COLOR, -1)
-
-        # Get the 2D Coordinates
-        face_2d.append([x, y])
-
-        # Get the 3D Coordinates
-        face_3d.append([x, y, lm.z])
-
-    # Convert it to the NumPy array
-    face_2d = np.array(face_2d, dtype=np.float64)
-
-    # Convert it to the NumPy array
-    face_3d = np.array(face_3d, dtype=np.float64)
-
-    # The camera matrix
-    focal_length = 1 * img_w
-
-    cam_matrix = np.array([[focal_length, 0, img_w / 2],
-                           [0, focal_length, img_h / 2],
-                           [0, 0, 1]])
-
-    # The distortion parameters
-    dist_matrix = np.zeros((4, 1), dtype=np.float64)
-
-    # Solve PnP
-    success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
-
-    #print("Rotation vector {0}".format(rot_vec))
-
-    # Get rotational matrix
-    rmat, jac = cv2.Rodrigues(rot_vec)
-
-    # Get angles
-    angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
-
-    # Get the y rotation degree
-    # euler angles
-    #euler=rotationMatrixToEulerAngles(rmat)
-    #x=euler[0]*180/math.pi*100
-    #y=euler[1]*180/math.pi*100
-    #z=euler[2]*180/math.pi*100
-
-    #x=euler[0]*360*100
-    #y=euler[1]*360*100
-    #z=euler[2]*360*100
-
-    x = angles[0] * 360
-    y = angles[1] * 360
-    z = angles[2] * 360
-
-    # Display the nose direction
-    nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
-
-    #print("Angles: {0}, x,y,z: {1}, nose_3d_projection {2}".format(angles,(x,y,z),nose_3d_projection))
-
-    p1 = (int(nose_2d[0]), int(nose_2d[1]))
-    p2 = (int(nose_2d[0] + y * 5), int(nose_2d[1] - x * 5))
-    #p2=(int(nose_3d_projection[0][0][0])*5,int(nose_3d_projection[0][0][1])*5)
-
-    cv2.line(frame, p1, p2, (255, 0, 0), 3)
-    plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(10,int(img_h-2*30-20)), (255, 0, 0))
-    plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(10,int(img_h-30-20)), (255, 0, 0))
-    plot_text(frame,"Roll: {0}".format(format(z,".2f")),(10,int(img_h-20)), (255, 0, 0))
-
-    head_pose=(x,y,z)
-    return head_pose
-
 # Checks if a matrix is a valid rotation matrix.
 def isRotationMatrix(R) :
     Rt = np.transpose(R)
@@ -236,6 +156,10 @@ class VideoFrameHandler:
 
         self.EAR_txt_pos = (10, 30)
 
+        # rotation used for calibration
+        # must be subtracted from the current rotation
+        self.head_pose_null = (0.0, 0.0, 0.0)
+
     def process(self, frame: np.array):
         """
         This function is used to implement our Drowsy detection algorithm
@@ -266,7 +190,7 @@ class VideoFrameHandler:
 
         if results.multi_face_landmarks:
             landmarks = results.multi_face_landmarks[0].landmark
-            head_pose=get_head_pose(frame,landmarks,self.frame_w,self.frame_h)
+            head_pose=self.get_head_pose(frame,landmarks,self.frame_w,self.frame_h)
             for state_tracker, idx in zip(self.state_tracker, range(len(self.state_tracker))):
                 EAR, lm_coordinates = calculate_avg_ear(landmarks, state_tracker["gesture_idxs"], self.frame_w, self.frame_h)
                 frame = plot_eye_landmarks(frame, lm_coordinates, state_tracker["COLOR"])
@@ -317,5 +241,90 @@ class VideoFrameHandler:
         state_tracker["COLOR"] = GREEN
         state_tracker["play_alarm_prev"] = state_tracker["play_alarm"]
         state_tracker["play_alarm"] = False
+
+    def set_headpose_null(self, head_pose):
+        print(f"setting head_pose_null={head_pose}")
+        self.head_pose_null=head_pose
+
+
+    def get_head_pose(self, frame, landmarks, img_w, img_h):
+        face_3d = []
+        face_2d = []
+
+        for idx in [33,263,1,61,291,199]:
+            lm=landmarks[idx]
+            if idx == 1:
+                nose_2d = (lm.x * img_w, lm.y * img_h)
+                nose_3d = (lm.x * img_w, lm.y * img_h, lm.z * 3000)
+
+            x, y = int(lm.x * img_w), int(lm.y * img_h)
+
+            cv2.circle(frame, (x,y), 4, mp.solutions.drawing_utils.WHITE_COLOR, -1)
+
+            # Get the 2D Coordinates
+            face_2d.append([x, y])
+
+            # Get the 3D Coordinates
+            face_3d.append([x, y, lm.z])
+
+        # Convert it to the NumPy array
+        face_2d = np.array(face_2d, dtype=np.float64)
+
+        # Convert it to the NumPy array
+        face_3d = np.array(face_3d, dtype=np.float64)
+
+        # The camera matrix
+        focal_length = 1 * img_w
+
+        cam_matrix = np.array([[focal_length, 0, img_w / 2],
+                               [0, focal_length, img_h / 2],
+                               [0, 0, 1]])
+
+        # The distortion parameters
+        dist_matrix = np.zeros((4, 1), dtype=np.float64)
+
+        # Solve PnP
+        success, rot_vec, trans_vec = cv2.solvePnP(face_3d, face_2d, cam_matrix, dist_matrix)
+
+        #print("Rotation vector {0}".format(rot_vec))
+
+        # Get rotational matrix
+        rmat, jac = cv2.Rodrigues(rot_vec)
+
+        # Get angles
+        angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
+
+        # Get the y rotation degree
+        # euler angles
+        #euler=rotationMatrixToEulerAngles(rmat)
+        #x=euler[0]*180/math.pi*100
+        #y=euler[1]*180/math.pi*100
+        #z=euler[2]*180/math.pi*100
+
+        #x=euler[0]*360*100
+        #y=euler[1]*360*100
+        #z=euler[2]*360*100
+
+        x = angles[0] * 360 - self.head_pose_null[0]
+        y = angles[1] * 360 - self.head_pose_null[1]
+        z = angles[2] * 360 - self.head_pose_null[2]
+
+        # Display the nose direction
+        nose_3d_projection, jacobian = cv2.projectPoints(nose_3d, rot_vec, trans_vec, cam_matrix, dist_matrix)
+
+        #print("Angles: {0}, x,y,z: {1}, nose_3d_projection {2}".format(angles,(x,y,z),nose_3d_projection))
+
+        p1 = (int(nose_2d[0]), int(nose_2d[1]))
+        p2 = (int(nose_2d[0] + y * 5), int(nose_2d[1] - x * 5))
+        #p2=(int(nose_3d_projection[0][0][0])*5,int(nose_3d_projection[0][0][1])*5)
+
+        cv2.line(frame, p1, p2, (255, 0, 0), 3)
+        plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(10,int(img_h-2*30-20)), (255, 0, 0))
+        plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(10,int(img_h-30-20)), (255, 0, 0))
+        plot_text(frame,"Roll: {0}".format(format(z,".2f")),(10,int(img_h-20)), (255, 0, 0))
+
+        head_pose=(x,y,z)
+        return head_pose
+
 
 
