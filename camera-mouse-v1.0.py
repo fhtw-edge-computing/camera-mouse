@@ -83,7 +83,7 @@ state_gesture=[{
         "label": "brow_up_l",
 #        "gesture_idxs": [33, 105, 66, 133, 153, 144],
         "gesture_idxs": [33, 105, 66, 263, 153,144],
-        "EAR_THRESH": 0.43,
+        "EAR_THRESH": 0.415,
         "WAIT_TIME": 0.6,
         "operator": ">",
         "start_time": time.perf_counter(),
@@ -113,13 +113,13 @@ def mouse_move(x, y):
     if mouse_mode:
         mouse.move(x, y, absolute=False, duration=0)
     else:
-        if x < 0:
+        if x < -10:
             pyautogui.press("left")
-        elif x > 0:
+        elif x > 10:
             pyautogui.press("right")
-        elif y < 0:
+        elif y < -10:
             pyautogui.press("up")
-        elif y > 0:
+        elif y > 10:
             pyautogui.press("down")
 
 def trigger_gesture(action):
@@ -187,7 +187,7 @@ def cam_mouse_EAR():
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
-        print(key)
+        #print(key)
         if key == 27:
             break
         elif key == 97:
@@ -213,7 +213,7 @@ def mouse_move_joystick_head_pose(head_pose,frame_w,frame_h):
     global frame_counter
 
     frame_counter+=1
-    if not mouse_mode and not (frame_counter % 8)==0:
+    if not mouse_mode and not (frame_counter % 12)==0:
         return
 
     pitch=head_pose[0]
