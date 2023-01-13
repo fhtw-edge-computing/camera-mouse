@@ -182,7 +182,7 @@ class VideoFrameHandler:
         #frame_h, frame_w, _ = frame.shape
 
         DROWSY_TIME_txt_pos = (10, int(self.frame_h // 2 * 1.7))
-        ALM_txt_pos = (10, int(self.frame_h // 2 * 1.85))
+        ALM_txt_pos = (self.EAR_txt_pos[0], self.EAR_txt_pos[1]+len(self.state_tracker)*30)
 
         results = self.facemesh_model.process(frame)
         nose_pos=(self.frame_w/2,self.frame_h/2)
@@ -214,17 +214,21 @@ class VideoFrameHandler:
                     if state_tracker["DROWSY_TIME"] >= state_tracker["WAIT_TIME"]:
                         state_tracker["play_alarm_prey"] = state_tracker["play_alarm"]
                         state_tracker["play_alarm"] = True
-                        plot_text(frame, "WAKE UP! WAKE UP", ALM_txt_pos, state_tracker["COLOR"])
+                        plot_text(frame, state_tracker["action"], ALM_txt_pos, state_tracker["COLOR"])
 
                 else:
                     self.reset_state(state_tracker)
 
-                EAR_txt = f"{state_tracker['label']}: {round(EAR, 2)}, time: {round(state_tracker['DROWSY_TIME'], 3)} Secs"
+                EAR_txt = f"{state_tracker['action']}={state_tracker['label']}: {EAR:.2f}, time: {state_tracker['DROWSY_TIME']:.2f} Secs"
                 #DROWSY_TIME_txt = f"DROWSY: {round(state_tracker['DROWSY_TIME'], 3)} Secs"
                 txt_pos=self.EAR_txt_pos
                 txt_pos=(txt_pos[0],txt_pos[1]+idx*30)
                 plot_text(frame, EAR_txt, txt_pos, state_tracker["COLOR"])
-                #plot_text(frame, DROWSY_TIME_txt, DROWSY_TIME_txt_pos+idx*(0,10), state_tracker["COLOR"])
+
+                # plot help
+                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-250), int(self.frame_h - 2 * 30 - 20)),(255, 0, 0))
+                plot_text(frame, "Calibrate head pose: c", (int(self.frame_w-250), int(self.frame_h - 30 - 20)),(255, 0, 0))
+                plot_text(frame, "Change mode: m", (int(self.frame_w-250), int(self.frame_h - 20)),(255, 0, 0))
 
         else:
             for state_tracker in self.state_tracker:
@@ -319,9 +323,9 @@ class VideoFrameHandler:
         #p2=(int(nose_3d_projection[0][0][0])*5,int(nose_3d_projection[0][0][1])*5)
 
         cv2.line(frame, p1, p2, (255, 0, 0), 3)
-        plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(10,int(img_h-2*30-20)), (255, 0, 0))
-        plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(10,int(img_h-30-20)), (255, 0, 0))
-        plot_text(frame,"Roll: {0}".format(format(z,".2f")),(10,int(img_h-20)), (255, 0, 0))
+        plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(self.EAR_txt_pos[0],int(img_h-2*30-20)), (255, 0, 0))
+        plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(self.EAR_txt_pos[0],int(img_h-30-20)), (255, 0, 0))
+        plot_text(frame,"Roll: {0}".format(format(z,".2f")),(self.EAR_txt_pos[0],int(img_h-20)), (255, 0, 0))
 
         head_pose=(x,y,z)
         return head_pose
