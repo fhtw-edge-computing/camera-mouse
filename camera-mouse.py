@@ -6,6 +6,7 @@ import chime
 from queue import Queue
 import math
 from screeninfo import get_monitors
+from enum import Enum
 
 ## Eye blink integration
 import drowsy_detection
@@ -15,7 +16,13 @@ last_nose_pos=(-1,-1)
 nose_pos_q=Queue(maxsize=3)
 
 pyautogui.FAILSAFE = False
-mouse_mode=True
+
+class MouseMode(Enum):
+    REL_MOUSE=1
+    REL_JOYSTICK_MOUSE=2
+    CURSOR_KEYS=3
+
+mouse_mode=MouseMode.REL_JOYSTICK_MOUSE
 frame_counter=0
 
 enabled=True
@@ -106,9 +113,7 @@ state_gesture=[{
 
 def mouse_move(x, y):
     #print("mouse move: x={0}, y={1}".format(x,y))
-    if mouse_mode:
-        mouse.move(x, y, absolute=False, duration=0)
-    else:
+    if mouse_mode==MouseMode.CURSOR_KEYS:
         if x < -10:
             pyautogui.press("left")
         elif x > 10:
@@ -117,6 +122,8 @@ def mouse_move(x, y):
             pyautogui.press("up")
         elif y > 10:
             pyautogui.press("down")
+    else:
+        mouse.move(x, y, absolute=False, duration=0)
 
 def trigger_gesture(action):
     x, y = mouse.get_position()
@@ -148,6 +155,7 @@ def calibrate(vidFrameHandler, frame,state_tracker,nose_pos,head_pose,frame_w,fr
 
 def cam_mouse_EAR():
     global enabled
+    global mouse_mode
 
     cap = cv2.VideoCapture(0)
     #cap = cv2.VideoCapture("taster-rotate+cut-lachen2.mp4")
@@ -158,7 +166,7 @@ def cam_mouse_EAR():
         #    # Flip the frame horizontally for a selfie-view display.
         img = cv2.flip(img, 1)
 
-        frame, state_tracker, nose_pos, head_pose = vidFrameHandler.process(img)
+        frame, state_tracker, nose_pos, head_pose = vidFrameHandler.process(img,mouse_mode.name)
 
         if enabled:
             for gesture in state_tracker:
@@ -171,19 +179,27 @@ def cam_mouse_EAR():
 
             frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
             frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-            #mouse_move_direct(nose_pos,frame_w,frame_h)
-            mouse_move_joystick_head_pose(head_pose, frame_w, frame_h)
+
+            if mouse_mode==MouseMode.REL_MOUSE:
+                mouse_move_direct(nose_pos,frame_w,frame_h)
+            elif mouse_mode==MouseMode.REL_JOYSTICK_MOUSE or mouse_mode==MouseMode.CURSOR_KEYS:
+                mouse_move_joystick_head_pose(head_pose, frame_w, frame_h)
 
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
-        #print(key)
+        print(key)
         if key == 27:
             break
         elif key == 97:
             enabled=not enabled
         elif key == 99:
             calibrate(vidFrameHandler,frame,state_tracker,nose_pos,head_pose,frame_w,frame_h)
+        elif key== 109:
+            try:
+                mouse_mode=MouseMode(mouse_mode.value+1)
+            except:
+                mouse_mode=MouseMode(1)
 
 def mouse_move_direct(nose_pos,frame_w,frame_h):
     global last_nose_pos

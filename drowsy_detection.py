@@ -11,6 +11,8 @@ from mediapipe.python.solutions.drawing_utils import _normalized_to_pixel_coordi
 RED = (0, 0, 255)  # BGR
 GREEN = (0, 255, 0)  # BGR
 
+
+
 def get_mediapipe_app(
     max_num_faces=1,
     refine_landmarks=True,
@@ -160,7 +162,7 @@ class VideoFrameHandler:
         # must be subtracted from the current rotation
         self.head_pose_null = (0.0, 0.0, 0.0)
 
-    def process(self, frame: np.array):
+    def process(self, frame: np.array, mouse_mode_name):
         """
         This function is used to implement our Drowsy detection algorithm
 
@@ -226,10 +228,10 @@ class VideoFrameHandler:
                 plot_text(frame, EAR_txt, txt_pos, state_tracker["COLOR"])
 
                 # plot help
-                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-250), int(self.frame_h - 2 * 30 - 20)),(255, 0, 0))
-                plot_text(frame, "Calibrate head pose: c", (int(self.frame_w-250), int(self.frame_h - 30 - 20)),(255, 0, 0))
-                plot_text(frame, "Change mode: m", (int(self.frame_w-250), int(self.frame_h - 20)),(255, 0, 0))
-
+                plot_text(frame, f"Mode: {mouse_mode_name}", (int(self.frame_w - 300), int(self.frame_h - 3 * 30 - 20)), RED)
+                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-300), int(self.frame_h - 2 * 30 - 20)),(255, 0, 0))
+                plot_text(frame, "Calibrate head pose: c", (int(self.frame_w-300), int(self.frame_h- 30 - 20)),(255, 0, 0))
+                plot_text(frame, "Change mode: m", (int(self.frame_w-300), int(self.frame_h - 20)),(255, 0, 0))
         else:
             for state_tracker in self.state_tracker:
                 self.reset_state(state_tracker)
