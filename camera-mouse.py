@@ -110,7 +110,6 @@ state_gesture=[{
     #     "action": ""
     # }
 ]
-
 def mouse_move(x, y):
     #print("mouse move: x={0}, y={1}".format(x,y))
     if mouse_mode==MouseMode.CURSOR_KEYS:
@@ -157,8 +156,14 @@ def cam_mouse_EAR():
     global enabled
     global mouse_mode
 
+    cTime=time.time()
+    pTime=cTime
+
     cap = cv2.VideoCapture(0)
-    #cap = cv2.VideoCapture("taster-rotate+cut-lachen2.mp4")
+    frame_w=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    fpos_pos=(round(frame_w)-150,30)
+
+    #cap = cv2.VideoCapture("Manschette-test-frontal.mkv")
     vidFrameHandler = drowsy_detection.VideoFrameHandler(cap,state_gesture)
 
     while True:
@@ -185,6 +190,10 @@ def cam_mouse_EAR():
             elif mouse_mode==MouseMode.REL_JOYSTICK_MOUSE or mouse_mode==MouseMode.CURSOR_KEYS:
                 mouse_move_joystick_head_pose(head_pose, frame_w, frame_h)
 
+        cTime=time.time()
+        fps=round(1/(cTime-pTime))
+        pTime=cTime
+        cv2.putText(img, f"FPS: {fps}", fpos_pos, cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
