@@ -21,6 +21,7 @@ def get_mediapipe_app(
 ):
     """Initialize and return Mediapipe FaceMesh Solution Graph object"""
     face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=False,
         max_num_faces=max_num_faces,
         refine_landmarks=refine_landmarks,
         min_detection_confidence=min_detection_confidence,
