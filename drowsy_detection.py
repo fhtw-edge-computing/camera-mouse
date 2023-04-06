@@ -10,8 +10,10 @@ from mediapipe.python.solutions.drawing_utils import _normalized_to_pixel_coordi
 # Its value depends on the current EAR value.
 RED = (0, 0, 255)  # BGR
 GREEN = (0, 255, 0)  # BGR
-
-
+BLUE = (255,0,0)
+BLACK = (0,0,0)
+GREY=(50,50,50)
+WHITE=(255,255,255)
 
 def get_mediapipe_app(
     max_num_faces=1,
@@ -89,12 +91,12 @@ def calculate_avg_ear(landmarks, gesture_idxs, image_w, image_h):
 def plot_eye_landmarks(frame, lm_coordinates, color):
     if lm_coordinates:
         for coord in lm_coordinates:
-            cv2.circle(frame, coord, 2, color, -1)
+            cv2.circle(frame, coord, 3, color, -1)
 
     #frame = cv2.flip(frame, 1)
     return frame
 
-def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_SIMPLEX, fntScale=0.6, thickness=2):
+def plot_text(image, text, origin, color, font=cv2.FONT_HERSHEY_DUPLEX, fntScale=0.6, thickness=2):
     image = cv2.putText(image, text, origin, font, fntScale, color, thickness)
     return image
 
@@ -185,7 +187,7 @@ class VideoFrameHandler:
         #frame_h, frame_w, _ = frame.shape
 
         DROWSY_TIME_txt_pos = (10, int(self.frame_h // 2 * 1.7))
-        ALM_txt_pos = (self.EAR_txt_pos[0], self.EAR_txt_pos[1]+len(self.state_tracker)*30)
+        ALM_txt_pos = (self.EAR_txt_pos[0], self.EAR_txt_pos[1]+len(self.state_tracker)*30+30)
 
         results = self.facemesh_model.process(frame)
         nose_pos=(self.frame_w/2,self.frame_h/2)
@@ -217,7 +219,7 @@ class VideoFrameHandler:
                     if state_tracker["DROWSY_TIME"] >= state_tracker["WAIT_TIME"]:
                         state_tracker["play_alarm_prey"] = state_tracker["play_alarm"]
                         state_tracker["play_alarm"] = True
-                        plot_text(frame, state_tracker["action"], ALM_txt_pos, state_tracker["COLOR"])
+                        plot_text(frame, state_tracker["action"], ALM_txt_pos, state_tracker["COLOR"],fntScale=1)
 
                 else:
                     self.reset_state(state_tracker)
@@ -229,10 +231,10 @@ class VideoFrameHandler:
                 plot_text(frame, EAR_txt, txt_pos, state_tracker["COLOR"])
 
                 # plot help
-                plot_text(frame, f"Mode: {mouse_mode_name}", (int(self.frame_w - 300), int(self.frame_h - 3 * 30 - 20)), RED)
-                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-300), int(self.frame_h - 2 * 30 - 20)),(255, 0, 0))
-                plot_text(frame, "Calibrate head pose: c", (int(self.frame_w-300), int(self.frame_h- 30 - 20)),(255, 0, 0))
-                plot_text(frame, "Change mode: m", (int(self.frame_w-300), int(self.frame_h - 20)),(255, 0, 0))
+                plot_text(frame, f"Mode: {mouse_mode_name}", (int(self.frame_w - 300), int(self.frame_h - 3 * 30 - 20)), WHITE)
+                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-300), int(self.frame_h - 2 * 30 - 20)),BLACK)
+                plot_text(frame, "Calibrate head pose: c", (int(self.frame_w-300), int(self.frame_h- 30 - 20)),BLACK)
+                plot_text(frame, "Change mode: m", (int(self.frame_w-300), int(self.frame_h - 20)),BLACK)
         else:
             for state_tracker in self.state_tracker:
                 self.reset_state(state_tracker)
@@ -245,7 +247,7 @@ class VideoFrameHandler:
     def reset_state(self, state_tracker):
         state_tracker["start_time"] = time.perf_counter()
         state_tracker["DROWSY_TIME"] = 0.0
-        state_tracker["COLOR"] = GREEN
+        state_tracker["COLOR"] = BLACK
         state_tracker["play_alarm_prev"] = state_tracker["play_alarm"]
         state_tracker["play_alarm"] = False
 
@@ -326,9 +328,9 @@ class VideoFrameHandler:
         #p2=(int(nose_3d_projection[0][0][0])*5,int(nose_3d_projection[0][0][1])*5)
 
         cv2.line(frame, p1, p2, (255, 0, 0), 3)
-        plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(self.EAR_txt_pos[0],int(img_h-2*30-20)), (255, 0, 0))
-        plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(self.EAR_txt_pos[0],int(img_h-30-20)), (255, 0, 0))
-        plot_text(frame,"Roll: {0}".format(format(z,".2f")),(self.EAR_txt_pos[0],int(img_h-20)), (255, 0, 0))
+        plot_text(frame,"Pitch: {0}".format(format(x,".2f")),(self.EAR_txt_pos[0],int(img_h-2*30-50)), BLUE)
+        plot_text(frame,"Yaw: {0}".format(format(y,".2f")),(self.EAR_txt_pos[0],int(img_h-30-50)), BLUE)
+        plot_text(frame,"Roll: {0}".format(format(z,".2f")),(self.EAR_txt_pos[0],int(img_h-50)), BLUE)
 
         head_pose=(x,y,z)
         return head_pose

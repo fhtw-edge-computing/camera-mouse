@@ -25,7 +25,7 @@ class MouseMode(Enum):
 mouse_mode=MouseMode.REL_JOYSTICK_MOUSE
 frame_counter=0
 
-enabled=True
+enabled=False
 
 # Define gestures by selecting the landmark indexes which shall be used for calculation the EAR value: https://learnopencv.com/driver-drowsiness-detection-using-mediapipe-in-python/
 # The landmark indexes can be found here (left / right must be flipped because of selfie view): https://raw.githubusercontent.com/google/mediapipe/master/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png
@@ -38,7 +38,7 @@ state_gesture=[{
         "operator": ">",
         "start_time": time.perf_counter(),
         "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-        "COLOR": drowsy_detection.GREEN,
+        "COLOR": drowsy_detection.BLACK,
         "play_alarm": False,
         "play_alarm_prev": False,
         "action": "Double Click"
@@ -51,7 +51,7 @@ state_gesture=[{
         "operator": "<",
         "start_time": time.perf_counter(),
         "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-        "COLOR": drowsy_detection.GREEN,
+        "COLOR": drowsy_detection.BLACK,
         "play_alarm": False,
         "play_alarm_prev": False,
         "action": "Right Click"
@@ -64,7 +64,7 @@ state_gesture=[{
         "operator": "<",
         "start_time": time.perf_counter(),
         "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-        "COLOR": drowsy_detection.GREEN,
+        "COLOR": drowsy_detection.BLACK,
         "play_alarm": False,
         "play_alarm_prev": False,
         "action": "Left Click"
@@ -77,7 +77,7 @@ state_gesture=[{
 #        "operator": ">",
 #        "start_time": time.perf_counter(),
 #        "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-#        "COLOR": drowsy_detection.GREEN,
+#        "COLOR": drowsy_detection.BLACK,
 #        "play_alarm": False,
 #        "play_alarm_prev": False,
 #        "action": ""
@@ -91,7 +91,7 @@ state_gesture=[{
         "operator": ">",
         "start_time": time.perf_counter(),
         "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-        "COLOR": drowsy_detection.GREEN,
+        "COLOR": drowsy_detection.BLACK,
         "play_alarm": False,
         "play_alarm_prev": False,
         "action": "KEY_SPACE"
@@ -104,7 +104,7 @@ state_gesture=[{
     #     "operator": "<",
     #     "start_time": time.perf_counter(),
     #     "DROWSY_TIME": 0.0,  # Holds the amount of time passed with EAR < EAR_THRESH
-    #     "COLOR": drowsy_detection.GREEN,
+    #     "COLOR": drowsy_detection.BLACK,
     #     "play_alarm": False,
     #     "play_alarm_prev": False,
     #     "action": ""
@@ -159,8 +159,9 @@ def cam_mouse_EAR():
     pTime=cTime
 
     cap = cv2.VideoCapture(0)
-    frame_w=cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    fpos_pos=(round(frame_w)-150,30)
+    frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    fpos_pos=(10,round(frame_h-20))
 
     #cap = cv2.VideoCapture("Manschette-test-frontal.mkv")
     vidFrameHandler = drowsy_detection.VideoFrameHandler(cap,state_gesture)
@@ -181,9 +182,6 @@ def cam_mouse_EAR():
 
                 gesture["play_alarm_prev"]=gesture["play_alarm"]
 
-            frame_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-            frame_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
             if mouse_mode==MouseMode.REL_MOUSE:
                 mouse_move_direct(nose_pos,frame_w,frame_h)
             elif mouse_mode==MouseMode.REL_JOYSTICK_MOUSE or mouse_mode==MouseMode.CURSOR_KEYS:
@@ -192,7 +190,7 @@ def cam_mouse_EAR():
         cTime=time.time()
         fps=round(1/(cTime-pTime))
         pTime=cTime
-        cv2.putText(img, f"FPS: {fps}", fpos_pos, cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
+        cv2.putText(img, f"FPS: {fps}", fpos_pos, cv2.FONT_HERSHEY_DUPLEX, 0.6, drowsy_detection.BLACK, 2)
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
