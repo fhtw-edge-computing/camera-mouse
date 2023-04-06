@@ -195,8 +195,17 @@ def cam_mouse_EAR():
 
         key = cv2.pollKey()
         #print(key)
+        # ESC
         if key == 27:
             break
+        # gesture index: 0 - 9
+        elif key >= 48 and key < (48+len(state_gesture)):
+            drowsy_detection.gesture_editing_idx=key-48
+        # + increase current value, - decrease current value
+        elif key == 43:
+            state_gesture[drowsy_detection.gesture_editing_idx]['EAR_THRESH']+=0.02
+        elif key == 45:
+            state_gesture[drowsy_detection.gesture_editing_idx]['EAR_THRESH']-=0.02
         elif key == 97:
             enabled=not enabled
         elif key == 99:

@@ -15,6 +15,8 @@ BLACK = (0,0,0)
 GREY=(50,50,50)
 WHITE=(255,255,255)
 
+gesture_editing_idx=0
+
 def get_mediapipe_app(
     max_num_faces=1,
     refine_landmarks=True,
@@ -224,11 +226,13 @@ class VideoFrameHandler:
                 else:
                     self.reset_state(state_tracker)
 
-                EAR_txt = f"{state_tracker['action']}={state_tracker['label']}: {EAR:.2f}, time: {state_tracker['DROWSY_TIME']:.2f} Secs"
+                EAR_txt = f"{idx}: {state_tracker['action']}={state_tracker['label']}[{state_tracker['EAR_THRESH']:2.2f}]: {EAR:2.2f}, time: {state_tracker['DROWSY_TIME']:2.2f} Secs"
                 #DROWSY_TIME_txt = f"DROWSY: {round(state_tracker['DROWSY_TIME'], 3)} Secs"
                 txt_pos=self.EAR_txt_pos
                 txt_pos=(txt_pos[0],txt_pos[1]+idx*30)
-                plot_text(frame, EAR_txt, txt_pos, state_tracker["COLOR"])
+                gesture_col = state_tracker["COLOR"]
+                if idx==gesture_editing_idx: gesture_col=GREEN
+                plot_text(frame, EAR_txt, txt_pos, gesture_col)
 
                 # plot help
                 plot_text(frame, f"Mode: {mouse_mode_name}", (int(self.frame_w - 300), int(self.frame_h - 3 * 30 - 20)), WHITE)
