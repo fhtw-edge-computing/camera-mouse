@@ -133,7 +133,6 @@ def trigger_gesture(action):
     elif action == "Double Click":
         pyautogui.doubleClick(x, y)
         chime.success()
-        chime.success()
     elif action == "Right Click":
         pyautogui.rightClick(x, y)
         chime.warning()
@@ -197,7 +196,7 @@ def cam_mouse_EAR():
         cv2.imshow("Camera Mouse", frame)
 
         key = cv2.pollKey()
-        print(key)
+        #print(key)
         if key == 27:
             break
         elif key == 97:
@@ -290,4 +289,5 @@ def mouse_move_joystick(nose_pos,frame_w,frame_h):
     mouse_move(mouse_speed_x,mouse_speed_y)
 
 if __name__ == "__main__":
+    chime.theme("big-sur")
     cam_mouse_EAR()
