@@ -45,3 +45,15 @@ If the head pose values don't represent the real tilting of the head, you can ca
 
 By default the configured actions are disabled.
 Press 'a' to enable/disable the execution of mouse and keyboard emulation.
+
+## Build executable
+
+To create a distribution folder which includes all necessary .dll and an executable one can use nuitka(https://nuitka.net/). This translates the code to C code and compiles it. Instructions:
+
+1. Activate virtual environment ```venv/Scripts/activate``` on windows and source ```venv/bin/activate``` on linux
+2. Install nuitka: ```pip install nuitka```
+3.
+```
+python -m nuitka --standalone --nofollow-import-to=tkinter --include-package-data=mediapipe --include-data-dir=.\venv-win\Lib\site-packages\themes=th
+emes .\camera-mouse.py
+```
