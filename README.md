@@ -20,6 +20,14 @@ Tested with Python 3.10.
 
 ## Keyboard shortcuts
 
+### Gesture actions
+
+Each gesture is assigned a default action. The action is executed if the configured threshold value is exceeded (or undercut depending on the configured operator).
+To change the threshold value for the gesture:
+
+1. press the index number of the gesture, e.g. ```1``` (number at the beginning of the line)
+2. press ```+``` to increase or ```-``` to decrease the value.
+
 ### Changing mouse mode
 
 You can change the currently active mode by pressing the key ```m```. Currently there are 3 modes:
@@ -35,7 +43,5 @@ If the head pose values don't represent the real tilting of the head, you can ca
 
 ### Enabling/Disabling Mouse
 
-Press 'a' to enable/disable mouse
-
-
-
+By default the configured actions are disabled.
+Press 'a' to enable/disable the execution of mouse and keyboard emulation.
