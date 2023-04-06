@@ -25,8 +25,6 @@ class MouseMode(Enum):
 mouse_mode=MouseMode.REL_JOYSTICK_MOUSE
 frame_counter=0
 
-enabled=False
-
 # Define gestures by selecting the landmark indexes which shall be used for calculation the EAR value: https://learnopencv.com/driver-drowsiness-detection-using-mediapipe-in-python/
 # The landmark indexes can be found here (left / right must be flipped because of selfie view): https://raw.githubusercontent.com/google/mediapipe/master/mediapipe/modules/face_geometry/data/canonical_face_model_uv_visualization.png
 
@@ -128,19 +126,19 @@ def trigger_gesture(action):
     x, y = mouse.get_position()
     print("Gesture triggered: "+action)
     if action == "Left Click":
-        pyautogui.click(x, y)
+        if drowsy_detection.enabled: pyautogui.click(x, y)
         chime.success()
     elif action == "Double Click":
-        pyautogui.doubleClick(x, y)
+        if drowsy_detection.enabled: pyautogui.doubleClick(x, y)
         chime.success()
     elif action == "Right Click":
-        pyautogui.rightClick(x, y)
+        if drowsy_detection.enabled: pyautogui.rightClick(x, y)
         chime.warning()
     elif action == "Middle Click":
-        pyautogui.middleClick(x,y)
+        if drowsy_detection.enabled: pyautogui.middleClick(x,y)
         chime.info()
     elif action == "KEY_SPACE":
-        pyautogui.press("space")
+        if drowsy_detection.enabled: pyautogui.press("space")
         chime.error()
 
 def calibrate(vidFrameHandler, frame,state_tracker,nose_pos,head_pose,frame_w,frame_h):
@@ -152,7 +150,6 @@ def calibrate(vidFrameHandler, frame,state_tracker,nose_pos,head_pose,frame_w,fr
             mouse.move(screen_size[0]/2,screen_size[1]/2,absolute=True,duration=0)
 
 def cam_mouse_EAR():
-    global enabled
     global mouse_mode
 
     cTime=time.time()
@@ -173,19 +170,18 @@ def cam_mouse_EAR():
 
         frame, state_tracker, nose_pos, head_pose = vidFrameHandler.process(img,mouse_mode.name)
 
-        if enabled:
-            for gesture in state_tracker:
-                eye_blinked=gesture["play_alarm"]
-                eye_blinked_prev = gesture["play_alarm_prev"]
-                if eye_blinked and eye_blinked_prev==False:
-                    trigger_gesture(gesture["action"])
+        for gesture in state_tracker:
+            eye_blinked=gesture["play_alarm"]
+            eye_blinked_prev = gesture["play_alarm_prev"]
+            if eye_blinked and eye_blinked_prev==False:
+                trigger_gesture(gesture["action"])
 
-                gesture["play_alarm_prev"]=gesture["play_alarm"]
+            gesture["play_alarm_prev"]=gesture["play_alarm"]
 
-            if mouse_mode==MouseMode.REL_MOUSE:
-                mouse_move_direct(nose_pos,frame_w,frame_h)
-            elif mouse_mode==MouseMode.REL_JOYSTICK_MOUSE or mouse_mode==MouseMode.CURSOR_KEYS:
-                mouse_move_joystick_head_pose(head_pose, frame_w, frame_h)
+        if mouse_mode==MouseMode.REL_MOUSE:
+            mouse_move_direct(nose_pos,frame_w,frame_h)
+        elif mouse_mode==MouseMode.REL_JOYSTICK_MOUSE or mouse_mode==MouseMode.CURSOR_KEYS:
+            mouse_move_joystick_head_pose(head_pose, frame_w, frame_h)
 
         cTime=time.time()
         fps=round(1/(cTime-pTime))
@@ -207,7 +203,7 @@ def cam_mouse_EAR():
         elif key == 45:
             state_gesture[drowsy_detection.gesture_editing_idx]['EAR_THRESH']-=0.02
         elif key == 97:
-            enabled=not enabled
+            drowsy_detection.enabled=not drowsy_detection.enabled
         elif key == 99:
             calibrate(vidFrameHandler,frame,state_tracker,nose_pos,head_pose,frame_w,frame_h)
         elif key== 109:
@@ -226,7 +222,7 @@ def mouse_move_direct(nose_pos,frame_w,frame_h):
 
     diff_nose_pos=(last_nose_pos[0]-avg_nose_pos[0],last_nose_pos[1]-avg_nose_pos[1])
     if(abs(diff_nose_pos[0])>1 or abs(diff_nose_pos[1])> 1):
-        mouse_move(-1*diff_nose_pos[0]*mouse_speed,-1*diff_nose_pos[1]*mouse_speed)
+        if drowsy_detection.enabled: mouse_move(-1*diff_nose_pos[0]*mouse_speed,-1*diff_nose_pos[1]*mouse_speed)
 
     last_nose_pos = avg_nose_pos
 
@@ -267,7 +263,7 @@ def mouse_move_joystick_head_pose(head_pose,frame_w,frame_h):
         mouse_speed_y = -1*min(math.pow(mouse_speed_co, abs(pitch*acceleration)), mouse_speed_max)
 
     #print(text)
-    mouse_move(mouse_speed_x, mouse_speed_y)
+    if drowsy_detection.enabled: mouse_move(mouse_speed_x, mouse_speed_y)
 
 def mouse_move_joystick(nose_pos,frame_w,frame_h):
     global last_nose_pos
@@ -293,7 +289,7 @@ def mouse_move_joystick(nose_pos,frame_w,frame_h):
         mouse_speed_y = -1*min(math.pow(mouse_speed_co, abs(nose_pos[1] - thresh_pixel[3])),mouse_speed_max)
         #mouse_move(0,-1 * mouse_speed[1])
 
-    mouse_move(mouse_speed_x,mouse_speed_y)
+    if drowsy_detection.enabled: mouse_move(mouse_speed_x,mouse_speed_y)
 
 if __name__ == "__main__":
     chime.theme("big-sur")

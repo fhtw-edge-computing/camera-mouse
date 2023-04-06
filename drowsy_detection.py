@@ -15,7 +15,10 @@ BLACK = (0,0,0)
 GREY=(50,50,50)
 WHITE=(255,255,255)
 
+# current index for editing a gesture threshold
 gesture_editing_idx=0
+# define if mouse actions are activated
+enabled=False
 
 def get_mediapipe_app(
     max_num_faces=1,
@@ -236,7 +239,9 @@ class VideoFrameHandler:
 
                 # plot help
                 plot_text(frame, f"Mode: {mouse_mode_name}", (int(self.frame_w - 300), int(self.frame_h - 3 * 30 - 20)), WHITE)
-                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-300), int(self.frame_h - 2 * 30 - 20)),BLACK)
+                toggle_col=WHITE
+                if not enabled: toggle_col=GREY
+                plot_text(frame, "Toggle mouse: a", (int(self.frame_w-300), int(self.frame_h - 2 * 30 - 20)),toggle_col)
                 plot_text(frame, "Calibrate head pose: c", (int(self.frame_w-300), int(self.frame_h- 30 - 20)),BLACK)
                 plot_text(frame, "Change mode: m", (int(self.frame_w-300), int(self.frame_h - 20)),BLACK)
         else:
